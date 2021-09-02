@@ -1,4 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:video_compress/video_compress.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -6,6 +14,10 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  File? video;
+
+  MediaInfo? videoInfo;
+
   double videoDuration = 180;
 
   double maxDuration = 90;
@@ -22,10 +34,24 @@ class _HomeState extends State<Home> {
 
   loadVideo() async {
     try {
-      // Directory directory = await getApplicationDocumentsDirectory();
-      // ByteData video = await rootBundle.load('assets/video.mp4');
-
-    } catch (e) {}
+      Directory directory = await getApplicationDocumentsDirectory();
+      ByteData videoBytes = await rootBundle.load('assets/video.mp4');
+      Uint8List videoData = videoBytes.buffer
+          .asUint8List(videoBytes.offsetInBytes, videoBytes.lengthInBytes);
+      String path = join(directory.path, 'reflectly.mp4');
+      if (!await File(path).exists()) {
+        video = await File(path).writeAsBytes(videoData);
+      } else {
+        video = File(path);
+      }
+      final jsonStr = await VideoCompress.channel
+          .invokeMethod('getMediaInfo', {'path': video!.path});
+      final jsonMap = json.decode(jsonStr!);
+      videoInfo = MediaInfo.fromJson(jsonMap);
+      setState(() {});
+    } catch (e) {
+      print(e);
+    }
   }
 
   @override
@@ -52,11 +78,14 @@ class _HomeState extends State<Home> {
                     width: double.infinity,
                     decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(15),
-                        color: Theme.of(context).cardColor),
+                        color: Theme.of(context).cardColor,
+                        image: DecorationImage(
+                            image: AssetImage('assets/thumb.jpg'))),
                   ),
                   SizedBox(height: 15),
                   Text(
-                    'Video Name',
+                    'Reflectly - Flutter Developer Story',
+                    textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 18, fontStyle: FontStyle.italic),
                   ),
                   Container(
@@ -68,7 +97,9 @@ class _HomeState extends State<Home> {
                         SizedBox(width: 5),
                         // video duration
                         Text(
-                          '3:12',
+                          videoInfo == null
+                              ? ''
+                              : durationToString(videoInfo!.duration! ~/ 1000),
                           style: TextStyle(color: Colors.grey),
                         )
                       ],
@@ -88,7 +119,7 @@ class _HomeState extends State<Home> {
                                 fontSize: 16.5, fontWeight: FontWeight.w500),
                           ),
                         ),
-                        Text('${maxDuration.ceil()}')
+                        Text(durationToString(maxDuration.ceil()))
                       ],
                     ),
                   ),
@@ -96,8 +127,13 @@ class _HomeState extends State<Home> {
                       value: maxDuration,
                       max: videoDuration,
                       onChanged: (value) {
+                        //  the minimum is 15 seconds
                         setState(() {
-                          maxDuration = value;
+                          if (value >= 15) {
+                            maxDuration = value;
+                          } else {
+                            maxDuration = 15;
+                          }
                         });
                       }),
                   SizedBox(height: 12),
@@ -126,4 +162,13 @@ class _HomeState extends State<Home> {
       ),
     );
   }
+}
+
+String durationToString(int seconds) {
+  int minutes = seconds ~/ 60;
+  seconds = seconds - (minutes * 60);
+
+  int hours = minutes ~/ 60;
+  minutes = minutes - (hours * 60);
+  return '${hours > 0 ? '$hours:' : ''}${(minutes < 10) && (hours > 0) ? '0' : ''}$minutes:${seconds < 10 ? '0' : ''}$seconds';
 }
