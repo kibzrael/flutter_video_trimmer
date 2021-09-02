@@ -22,8 +22,6 @@ class _HomeState extends State<Home> {
 
   double maxDuration = 90;
 
-  bool loading = true;
-
   bool error = false;
 
   @override
@@ -48,7 +46,9 @@ class _HomeState extends State<Home> {
           .invokeMethod('getMediaInfo', {'path': video!.path});
       final jsonMap = json.decode(jsonStr!);
       videoInfo = MediaInfo.fromJson(jsonMap);
-      setState(() {});
+      setState(() {
+        videoDuration = videoInfo?.duration ?? 180 / 1000;
+      });
     } catch (e) {
       print(e);
     }
@@ -99,7 +99,7 @@ class _HomeState extends State<Home> {
                         Text(
                           videoInfo == null
                               ? ''
-                              : durationToString(videoInfo!.duration! ~/ 1000),
+                              : durationToString(videoDuration.ceil()),
                           style: TextStyle(color: Colors.grey),
                         )
                       ],
