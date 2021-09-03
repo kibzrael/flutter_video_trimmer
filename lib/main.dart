@@ -16,6 +16,11 @@ class VideoTrimmerApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Colors.black,
+        accentColor: Colors.deepOrangeAccent,
+        pageTransitionsTheme: PageTransitionsTheme(builders: {
+          TargetPlatform.android: ZoomPageTransitionsBuilder(),
+          TargetPlatform.iOS: ZoomPageTransitionsBuilder()
+        }),
         cardColor: Color(0xFF121212),
         appBarTheme: AppBarTheme(
             backgroundColor: Colors.black,

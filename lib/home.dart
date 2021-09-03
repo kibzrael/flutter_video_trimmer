@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_compress/video_compress.dart';
+import 'package:video_trimmer/trim.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -14,13 +15,11 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  File? video;
+  Video? video;
 
-  MediaInfo? videoInfo;
-
-  double videoDuration = 180;
-
-  double maxDuration = 90;
+// in milliseconds
+  double videoDuration = 180000;
+  double maxDuration = 90000;
 
   bool error = false;
 
@@ -37,17 +36,19 @@ class _HomeState extends State<Home> {
       Uint8List videoData = videoBytes.buffer
           .asUint8List(videoBytes.offsetInBytes, videoBytes.lengthInBytes);
       String path = join(directory.path, 'reflectly.mp4');
+      late File videoFile;
       if (!await File(path).exists()) {
-        video = await File(path).writeAsBytes(videoData);
+        videoFile = await File(path).writeAsBytes(videoData);
       } else {
-        video = File(path);
+        videoFile = File(path);
       }
       final jsonStr = await VideoCompress.channel
-          .invokeMethod('getMediaInfo', {'path': video!.path});
+          .invokeMethod('getMediaInfo', {'path': videoFile.path});
       final jsonMap = json.decode(jsonStr!);
-      videoInfo = MediaInfo.fromJson(jsonMap);
+      MediaInfo videoInfo = MediaInfo.fromJson(jsonMap);
       setState(() {
-        videoDuration = videoInfo?.duration ?? 180 / 1000;
+        videoDuration = videoInfo.duration ?? 180 / 1000;
+        video = Video(videoFile, info: videoInfo);
       });
     } catch (e) {
       print(e);
@@ -97,9 +98,9 @@ class _HomeState extends State<Home> {
                         SizedBox(width: 5),
                         // video duration
                         Text(
-                          videoInfo == null
+                          video == null
                               ? ''
-                              : durationToString(videoDuration.ceil()),
+                              : durationToString(videoDuration ~/ 1000),
                           style: TextStyle(color: Colors.grey),
                         )
                       ],
@@ -119,7 +120,7 @@ class _HomeState extends State<Home> {
                                 fontSize: 16.5, fontWeight: FontWeight.w500),
                           ),
                         ),
-                        Text(durationToString(maxDuration.ceil()))
+                        Text(durationToString(maxDuration ~/ 1000))
                       ],
                     ),
                   ),
@@ -129,10 +130,10 @@ class _HomeState extends State<Home> {
                       onChanged: (value) {
                         //  the minimum is 15 seconds
                         setState(() {
-                          if (value >= 15) {
+                          if (value >= 15000) {
                             maxDuration = value;
                           } else {
-                            maxDuration = 15;
+                            maxDuration = 15000;
                           }
                         });
                       }),
@@ -144,15 +145,11 @@ class _HomeState extends State<Home> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30)),
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text('Coming soon...',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w500)),
-                          backgroundColor: Colors.blue,
-                        ));
+                        if (video != null)
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) =>
+                                TrimVideoPage(video!, maxDuration: maxDuration),
+                          ));
                       })
                 ],
               ),
@@ -162,6 +159,13 @@ class _HomeState extends State<Home> {
       ),
     );
   }
+}
+
+class Video {
+  File video;
+  MediaInfo info;
+
+  Video(this.video, {required this.info});
 }
 
 String durationToString(int seconds) {
