@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_trimmer/dialog.dart';
 import 'package:video_trimmer/home.dart';
 import 'package:video_trimmer/trimmer.dart';
 
@@ -71,18 +75,47 @@ class _TrimVideoPageState extends State<TrimVideoPage>
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text('Trim Video'),
-      ),
+      appBar: AppBar(title: Text('Trim Video'), actions: [
+        TextButton(
+            onPressed: () {
+              videoController.pause();
+              setState(() {});
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return TrimDialog(
+                    video,
+                    trimStart: trimStart,
+                    trimEnd: trimEnd,
+                  );
+                },
+              );
+            },
+            child: Text('Done',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)))
+      ]),
       body: Stack(
         alignment: Alignment.center,
         children: [
-          AspectRatio(
-            aspectRatio: (video.info.height ?? 9) / (video.info.width ?? 16),
-            child: videoController.value.isInitialized
-                ? VideoPlayer(videoController)
-                : null,
+          InkWell(
+            onTap: () {
+              if (videoController.value.isPlaying) {
+                videoController.pause();
+              } else {
+                videoController.play();
+              }
+              setState(() {});
+            },
+            child: AspectRatio(
+              aspectRatio: (video.info.height ?? 9) / (video.info.width ?? 16),
+              child: videoController.value.isInitialized
+                  ? VideoPlayer(videoController)
+                  : null,
+            ),
           ),
+          if (videoController.value.isInitialized &&
+              !videoController.value.isPlaying)
+            Icon(Icons.play_arrow_rounded, color: Colors.white, size: 96),
           Align(
             alignment: Alignment.bottomCenter,
             child: Trimmer(
