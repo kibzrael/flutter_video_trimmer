@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_compress/video_compress.dart';
@@ -15,7 +16,10 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  late DateTime lastSnackBar;
+
   Video? video;
+  String videoName = 'Reflectly - Flutter Developer Story';
 
 // in milliseconds
   double videoDuration = 180000;
@@ -25,17 +29,26 @@ class _HomeState extends State<Home> {
 
   @override
   void initState() {
+    lastSnackBar = DateTime.now();
     super.initState();
     loadVideo();
   }
 
-  loadVideo() async {
+  loadVideo({XFile? videoXFile}) async {
     try {
       Directory directory = await getApplicationDocumentsDirectory();
-      ByteData videoBytes = await rootBundle.load('assets/video.mp4');
-      Uint8List videoData = videoBytes.buffer
-          .asUint8List(videoBytes.offsetInBytes, videoBytes.lengthInBytes);
-      String path = join(directory.path, 'reflectly.mp4');
+      Uint8List videoData;
+      String path;
+      if (videoXFile != null) {
+        videoData = await videoXFile.readAsBytes();
+        path = join(directory.path, videoXFile.name);
+      } else {
+        ByteData videoBytes = await rootBundle.load('assets/video.mp4');
+        videoData = videoBytes.buffer
+            .asUint8List(videoBytes.offsetInBytes, videoBytes.lengthInBytes);
+        path = join(directory.path, 'reflectly.mp4');
+      }
+
       late File videoFile;
       if (!await File(path).exists()) {
         videoFile = await File(path).writeAsBytes(videoData);
@@ -46,9 +59,12 @@ class _HomeState extends State<Home> {
           .invokeMethod('getMediaInfo', {'path': videoFile.path});
       final jsonMap = json.decode(jsonStr!);
       MediaInfo videoInfo = MediaInfo.fromJson(jsonMap);
+      File thumbnail = await VideoCompress.getFileThumbnail(videoFile.path);
       setState(() {
         videoDuration = videoInfo.duration ?? 180 / 1000;
+        maxDuration = videoDuration < 90000 ? videoDuration : 90000;
         video = Video(videoFile, info: videoInfo);
+        video!.thumbnail = thumbnail;
       });
     } catch (e) {
       print(e);
@@ -60,6 +76,22 @@ class _HomeState extends State<Home> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Video trimer'),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          XFile? videoFile =
+              await ImagePicker().pickVideo(source: ImageSource.gallery);
+          videoName = videoFile?.name ?? 'Reflectly - Flutter Developer Story';
+          loadVideo(videoXFile: videoFile);
+        },
+        label: Text(
+          'Select Video',
+          style: TextStyle(color: Colors.white),
+        ),
+        icon: Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
       ),
       body: Padding(
         padding: EdgeInsets.only(bottom: kToolbarHeight),
@@ -80,12 +112,15 @@ class _HomeState extends State<Home> {
                     decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(15),
                         color: Theme.of(context).cardColor,
-                        image: DecorationImage(
-                            image: AssetImage('assets/thumb.jpg'))),
+                        image: video != null
+                            ? DecorationImage(
+                                image: FileImage(video!.thumbnail!),
+                                fit: BoxFit.cover)
+                            : null),
                   ),
                   SizedBox(height: 15),
                   Text(
-                    'Reflectly - Flutter Developer Story',
+                    videoName,
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 18, fontStyle: FontStyle.italic),
                   ),
@@ -102,7 +137,7 @@ class _HomeState extends State<Home> {
                               ? ''
                               : durationToString(videoDuration ~/ 1000),
                           style: TextStyle(color: Colors.grey),
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -128,12 +163,27 @@ class _HomeState extends State<Home> {
                       value: maxDuration,
                       max: videoDuration,
                       onChanged: (value) {
-                        //  the minimum is 15 seconds
+                        //  the minimum is  3 seconds
+
                         setState(() {
-                          if (value >= 15000) {
+                          if (value >= 3000) {
                             maxDuration = value;
                           } else {
-                            maxDuration = 15000;
+                            if (DateTime.now().difference(lastSnackBar) >
+                                Duration(seconds: 4)) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      backgroundColor:
+                                          Theme.of(context).colorScheme.primary,
+                                      content: Text(
+                                        'The minimum duration is three seconds.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            fontSize: 16.5,
+                                            color: Colors.white),
+                                      )));
+                              lastSnackBar = DateTime.now();
+                            }
                           }
                         });
                       }),
@@ -164,8 +214,9 @@ class _HomeState extends State<Home> {
 class Video {
   File video;
   MediaInfo info;
+  File? thumbnail;
 
-  Video(this.video, {required this.info});
+  Video(this.video, {required this.info, this.thumbnail});
 }
 
 String durationToString(int seconds) {

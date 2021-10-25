@@ -20,9 +20,6 @@ class Trimmer extends StatefulWidget {
 }
 
 class _TrimmerState extends State<Trimmer> {
-  // int start = 0;
-  // late int end; 90
-
   double get max => widget.max * widget.speed;
   int get maxMilli => max.floor();
 
@@ -36,10 +33,6 @@ class _TrimmerState extends State<Trimmer> {
 
   @override
   Widget build(BuildContext context) {
-    // end = (widget.duration / 1000).ceil() > max
-    //     ? max
-    //     : (widget.duration / 1000).ceil();
-    // screen width - (margin + handle + cursor)
     double width = MediaQuery.of(context).size.width - (30 + 42 + 5);
     double widthNoCursor = MediaQuery.of(context).size.width - (30 + 42);
 
@@ -122,7 +115,7 @@ class _TrimmerState extends State<Trimmer> {
                   width: 21,
                   height: 75,
                   decoration: BoxDecoration(
-                      color: Theme.of(context).accentColor,
+                      color: Theme.of(context).colorScheme.secondary,
                       borderRadius:
                           BorderRadius.horizontal(right: Radius.circular(15))),
                   child: ClipRRect(
@@ -173,7 +166,7 @@ class _TrimmerState extends State<Trimmer> {
                   width: 21,
                   height: 75,
                   decoration: BoxDecoration(
-                      color: Theme.of(context).accentColor,
+                      color: Theme.of(context).colorScheme.secondary,
                       borderRadius:
                           BorderRadius.horizontal(left: Radius.circular(15))),
                   child: ClipRRect(
@@ -209,7 +202,7 @@ class _TrimmerState extends State<Trimmer> {
               child: Container(
                 width: double.infinity,
                 height: 1.5,
-                color: Theme.of(context).accentColor,
+                color: Theme.of(context).colorScheme.secondary,
               ),
             ),
             Positioned(
@@ -219,7 +212,7 @@ class _TrimmerState extends State<Trimmer> {
               child: Container(
                 width: double.infinity,
                 height: 1.5,
-                color: Theme.of(context).accentColor,
+                color: Theme.of(context).colorScheme.secondary,
               ),
             ),
             Positioned(
@@ -228,12 +221,9 @@ class _TrimmerState extends State<Trimmer> {
                 width: 5,
                 height: 90,
                 decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    gradient:
-                        LinearGradient(begin: Alignment.topCenter, colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).buttonColor,
-                    ])),
+                  borderRadius: BorderRadius.circular(15),
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
             )
           ],
