@@ -1,8 +1,8 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:video_compress/video_compress.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_trimmer/dialog.dart';
 import 'package:video_trimmer/home.dart';
@@ -20,6 +20,8 @@ class _TrimVideoPageState extends State<TrimVideoPage>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
   late Video video;
+
+  List<Uint8List?> thumbnails = [];
 
   late VideoPlayerController videoController;
 
@@ -61,7 +63,19 @@ class _TrimVideoPageState extends State<TrimVideoPage>
       duration = videoController.value.duration.inMilliseconds.toDouble();
       videoController.play();
       _ticker.start();
+      getThumbnails();
     });
+  }
+
+  getThumbnails() async {
+    int stepSize = maxDuration ~/ 9;
+    for (int step = 0; step < duration / stepSize; step++) {
+      int position = stepSize * step;
+      Uint8List? thumbnail = await VideoCompress.getByteThumbnail(
+          video.video.path,
+          position: position * 1000);
+      thumbnails.add(thumbnail);
+    }
   }
 
   @override
@@ -123,6 +137,7 @@ class _TrimVideoPageState extends State<TrimVideoPage>
               duration: duration,
               speed: speed,
               max: maxDuration,
+              thumbnails: thumbnails,
               onUpdate: (start, end) {
                 setState(() {
                   trimStart = start.floor();

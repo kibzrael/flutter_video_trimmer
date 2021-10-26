@@ -13,7 +13,19 @@ class _VideoDisplayState extends State<VideoDisplay> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          MaterialButton(
+            color: Colors.blue,
+            onPressed: () {},
+            child: Text('Save',
+                style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 18,
+                    color: Colors.white)),
+          )
+        ],
+      ),
       body: Center(
         child: Text(widget.video),
       ),

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:video_trimmer/home.dart';
 
@@ -6,14 +8,17 @@ class Trimmer extends StatefulWidget {
   final double duration;
   final double speed;
   final int max;
+  final List<Uint8List?> thumbnails;
   final Function(double start, double end) onUpdate;
 
-  Trimmer(
-      {required this.position,
-      required this.duration,
-      required this.speed,
-      required this.max,
-      required this.onUpdate});
+  Trimmer({
+    required this.position,
+    required this.duration,
+    required this.speed,
+    required this.max,
+    required this.onUpdate,
+    required this.thumbnails,
+  });
 
   @override
   _TrimmerState createState() => _TrimmerState();
@@ -49,6 +54,8 @@ class _TrimmerState extends State<Trimmer> {
     trimEnd =
         (duration - ((rightHandle / widthNoCursor) * duration)) / widget.speed;
 
+    double thumbsWidth = (widget.duration * (widthNoCursor + 42)) / maxMilli;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       child: SizedBox(
@@ -65,16 +72,21 @@ class _TrimmerState extends State<Trimmer> {
                     borderRadius: BorderRadius.circular(15),
                     color: Colors.white10),
                 child: ListView.builder(
-                    itemCount: 15,
+                    itemCount: widget.thumbnails.length,
                     scrollDirection: Axis.horizontal,
                     physics: BouncingScrollPhysics(),
                     itemBuilder: (context, index) {
+                      Uint8List? thumbnail = widget.thumbnails[index];
                       return Container(
-                        width: 50,
+                        width: thumbsWidth / widget.thumbnails.length,
                         height: 75,
                         decoration: BoxDecoration(
-                            border:
-                                Border.all(color: Colors.white12, width: 1)),
+                            border: Border.all(color: Colors.white12, width: 1),
+                            image: thumbnail == null
+                                ? null
+                                : DecorationImage(
+                                    fit: BoxFit.cover,
+                                    image: MemoryImage(thumbnail))),
                       );
                     }),
               ),
