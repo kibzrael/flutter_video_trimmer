@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
 import 'package:path/path.dart' hide context;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:video_trimmer/display.dart';
 import 'package:video_trimmer/home.dart';
 
@@ -31,6 +32,16 @@ class _TrimDialogState extends State<TrimDialog> {
   }
 
   trim() async {
+    Permission storage = Permission.storage;
+    Permission manageStorage = Permission.manageExternalStorage;
+    if (!await storage.isGranted) {
+      PermissionStatus status = await storage.request();
+      // if (status != PermissionStatus.granted) Navigator.pop(context);
+    }
+    if (!await manageStorage.isGranted) {
+      PermissionStatus status = await manageStorage.request();
+      // if (status != PermissionStatus.granted) Navigator.pop(context);
+    }
     FlutterFFmpeg ffmpeg = FlutterFFmpeg();
     Directory directory = await getApplicationDocumentsDirectory();
     String start = durationToString(widget.trimStart);

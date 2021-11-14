@@ -25,6 +25,8 @@ class Trimmer extends StatefulWidget {
 }
 
 class _TrimmerState extends State<Trimmer> {
+  late ScrollController scrollController;
+
   double get max => widget.max * widget.speed;
   int get maxMilli => max.floor();
 
@@ -35,6 +37,24 @@ class _TrimmerState extends State<Trimmer> {
 
   double trimStart = 0.0;
   double trimEnd = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    scrollController = ScrollController();
+    scrollController.addListener(scrollListener);
+  }
+
+  scrollListener() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    scrollController.removeListener(scrollListener);
+    scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +74,23 @@ class _TrimmerState extends State<Trimmer> {
     trimEnd =
         (duration - ((rightHandle / widthNoCursor) * duration)) / widget.speed;
 
+    double scrollFactor = 0;
+    if (scrollController.hasClients) {
+      double scrollPosition = scrollController.position.pixels;
+      double maxScroll = scrollController.position.maxScrollExtent;
+      if (maxScroll > 0) {
+        scrollFactor =
+            (scrollPosition / maxScroll) * (widget.duration - duration);
+      }
+      double cursorMovement =
+          scrollPosition / (widthNoCursor + 42) * widthNoCursor;
+      // cursorMovement -= 42;
+      cursor -= cursorMovement;
+    }
+
+    trimStart += scrollFactor;
+    trimEnd += scrollFactor;
+
     double thumbsWidth = (widget.duration * (widthNoCursor + 42)) / maxMilli;
 
     return Padding(
@@ -71,24 +108,33 @@ class _TrimmerState extends State<Trimmer> {
                 decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(15),
                     color: Colors.white10),
-                child: ListView.builder(
-                    itemCount: widget.thumbnails.length,
-                    scrollDirection: Axis.horizontal,
-                    physics: BouncingScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      Uint8List? thumbnail = widget.thumbnails[index];
-                      return Container(
-                        width: thumbsWidth / widget.thumbnails.length,
-                        height: 75,
-                        decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white12, width: 1),
-                            image: thumbnail == null
-                                ? null
-                                : DecorationImage(
-                                    fit: BoxFit.cover,
-                                    image: MemoryImage(thumbnail))),
-                      );
-                    }),
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    if (notification is ScrollEndNotification) {
+                      widget.onUpdate(trimStart, trimEnd);
+                    }
+                    return false;
+                  },
+                  child: ListView.builder(
+                      itemCount: widget.thumbnails.length,
+                      scrollDirection: Axis.horizontal,
+                      controller: scrollController,
+                      itemBuilder: (context, index) {
+                        Uint8List? thumbnail = widget.thumbnails[index];
+                        return Container(
+                          width: thumbsWidth / widget.thumbnails.length,
+                          height: 75,
+                          decoration: BoxDecoration(
+                              border:
+                                  Border.all(color: Colors.white12, width: 1),
+                              image: thumbnail == null
+                                  ? null
+                                  : DecorationImage(
+                                      fit: BoxFit.cover,
+                                      image: MemoryImage(thumbnail))),
+                        );
+                      }),
+                ),
               ),
             ),
             Align(
@@ -105,6 +151,16 @@ class _TrimmerState extends State<Trimmer> {
                 child: Text('${durationToString(trimEnd ~/ 1000)}'),
               ),
             ),
+            // Align(
+            //   alignment: Alignment.bottomCenter,
+            //   child: Padding(
+            //     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            //     child: Text(
+            //       'max:${scrollController.hasClients ? scrollController.position.maxScrollExtent : null}\nposition:${scrollController.hasClients ? scrollController.position.pixels : null}\nviewport:${widthNoCursor + 42}\ntotal:$thumbsWidth\nscrollFactor:$scrollFactor',
+            //       textAlign: TextAlign.center,
+            //     ),
+            //   ),
+            // ),
             Positioned(
               right: rightHandle,
               child: GestureDetector(

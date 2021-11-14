@@ -96,6 +96,7 @@ class _TrimVideoPageState extends State<TrimVideoPage>
               setState(() {});
               showDialog(
                 context: context,
+                barrierDismissible: false,
                 builder: (context) {
                   return TrimDialog(
                     video,

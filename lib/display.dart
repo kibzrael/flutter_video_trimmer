@@ -15,14 +15,15 @@ class _VideoDisplayState extends State<VideoDisplay> {
     return Scaffold(
       appBar: AppBar(
         actions: [
-          MaterialButton(
-            color: Colors.blue,
+          TextButton(
             onPressed: () {},
-            child: Text('Save',
-                style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 18,
-                    color: Colors.white)),
+            child: Text(
+              'Save',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 18,
+              ),
+            ),
           )
         ],
       ),
